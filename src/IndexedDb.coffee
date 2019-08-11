@@ -77,7 +77,9 @@ class Collection
     @store.query (matches) ->
       # Filter removed docs
       matches = _.filter matches, (m) -> m.state != "removed"
-      if success? then success(processFind(_.pluck(matches, "doc"), selector, options))
+      count = {}
+      items = processFind(_.pluck(matches, "doc"), selector, options, count)
+      if success? then success(items, count.filtered)
     , { index: "col", keyRange: @store.makeKeyRange(only: @name), onError: error }
 
   upsert: (docs, bases, success, error) ->
@@ -273,14 +275,14 @@ class Collection
         record = records[i]
         doc = docs[i]
 
-        # Check if not present 
-        if not record? 
+        # Check if not present
+        if not record?
           puts.push { col: @name, state: "cached", doc: doc }
 
       # Put batch
       if puts.length > 0
         @store.putBatch puts, =>
-          if success? then success()            
+          if success? then success()
         , error
       else
         if success? then success()
@@ -318,7 +320,7 @@ class Collection
       # Put batch
       if puts.length > 0
         @store.putBatch puts, =>
-          if success? then success()            
+          if success? then success()
         , error
       else
         if success? then success()

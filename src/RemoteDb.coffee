@@ -17,7 +17,7 @@ module.exports = class RemoteDb
     @useQuickFind = useQuickFind
     @usePostFind = usePostFind
 
-  # Can specify url of specific collection as option. 
+  # Can specify url of specific collection as option.
   addCollection: (name, options={}, success, error) ->
     if _.isFunction(options)
       [options, success, error] = [{}, options, success]
@@ -57,7 +57,7 @@ class Collection
       # If selector or fields or sort is too big, use post
       else if @usePostFind and JSON.stringify({ selector: selector, sort: options.sort, fields: options.fields }).length > 500
         method = "post"
-      else  
+      else
         method = "get"
 
       if method == "get"
@@ -101,14 +101,14 @@ class Collection
         # Send quickfind data
         body.quickfind = quickfind.encodeRequest(options.localData)
 
-        @httpClient("POST", @url + "/quickfind", params, body, (encodedResponse) =>
-          success(quickfind.decodeResponse(encodedResponse, options.localData, options.sort))
+        @httpClient("POST", @url + "/quickfind", params, body, (encodedResponse, count) =>
+          success(quickfind.decodeResponse(encodedResponse, options.localData, options.sort), count)
         , error)
         return
-      
+
       # POST method
-      @httpClient("POST", @url + "/find", params, body, (encodedResponse) =>
-        success(quickfind.decodeResponse(encodedResponse, options.localData, options.sort))
+      @httpClient("POST", @url + "/find", params, body, (encodedResponse, count) =>
+        success(quickfind.decodeResponse(encodedResponse, options.localData, options.sort), count)
       , error)
 
   # error is called with jqXHR
@@ -130,9 +130,9 @@ class Collection
     if navigator? and navigator.userAgent.toLowerCase().indexOf('android 2.3') != -1
       params._ = new Date().getTime()
 
-    @httpClient "GET", @url, params, null, (results) ->
+    @httpClient "GET", @url, params, null, (results, count) ->
       if results and results.length > 0
-        success(results[0])
+        success(results[0], count)
       else
         success(null)
     , error

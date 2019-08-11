@@ -126,12 +126,14 @@ exports.cloneLocalDb = (fromDb, toDb, success, error) ->
     success()
 
 # Processes a find with sorting and filtering and limiting
-exports.processFind = (items, selector, options) ->
+exports.processFind = (items, selector, options, count={}) ->
   filtered = _.filter(items, compileDocumentSelector(selector))
 
   # Handle geospatial operators
   filtered = processNearOperator(selector, filtered)
   filtered = processGeoIntersectsOperator(selector, filtered)
+
+  count.filtered = filtered.length
 
   if options and options.sort
     filtered.sort(compileSort(options.sort))

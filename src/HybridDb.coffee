@@ -9,7 +9,7 @@ _ = require 'lodash'
 processFind = require('./utils').processFind
 utils = require('./utils')
 
-# Bridges a local and remote database, querying from the local first and then 
+# Bridges a local and remote database, querying from the local first and then
 # getting the remote. Also uploads changes from local to remote.
 module.exports = class HybridDb
   constructor: (localDb, remoteDb) ->
@@ -122,7 +122,7 @@ class HybridCollection
     # Merge options
     _.defaults(options, @options)
 
-    step2 = (localData) =>
+    step2 = (localData, localCount) =>
       # Setup remote options
       remoteOptions = _.cloneDeep(options)
 
@@ -137,7 +137,7 @@ class HybridCollection
       timer = null
       timedOut = false
 
-      remoteSuccess = (remoteData) =>
+      remoteSuccess = (remoteData, remoteCount) =>
         # Cancel timer
         if timer
           clearTimeout(timer)
@@ -152,16 +152,17 @@ class HybridCollection
           # Cache locally
           cacheSuccess = =>
             # Get local data again
-            localSuccess2 = (localData2) ->
+            localSuccess2 = (localData2, count) ->
               # Check if different or not interim
               if not options.interim or not _.isEqual(localData, localData2)
                 # Send again
-                success(localData2)
+                success(localData2, count)
             @localCol.find(selector, options).fetch(localSuccess2, error)
           @localCol.cache(remoteData, selector, options, cacheSuccess, error)
         else
           # Remove local remotes
           data = remoteData
+          itemsCount = remoteCount
 
           @localCol.pendingRemoves (removes) =>
             if removes.length > 0
@@ -186,7 +187,7 @@ class HybridCollection
               # Check if different or not interim
               if not options.interim or not _.isEqual(localData, data)
                 # Send again
-                success(data)
+                success(data, itemsCount)
             , error
           , error
 
@@ -201,7 +202,7 @@ class HybridCollection
         # If no interim, do local find
         if not options.interim
           if options.useLocalOnRemoteError
-            success(localData)
+            success(localData, localCount)
           else
             if error then error(err)
         else
@@ -227,21 +228,21 @@ class HybridCollection
 
       @remoteCol.find(selector, remoteOptions).fetch(remoteSuccess, remoteError)
 
-    localSuccess = (localData) ->
+    localSuccess = (localData, count) ->
       # If interim, return data immediately
       if options.interim
-        success(localData)
-      step2(localData)
+        success(localData, count)
+      step2(localData, count)
 
     # Always get local data first
     @localCol.find(selector, options).fetch(localSuccess, error)
 
   upsert: (docs, bases, success, error) ->
     @localCol.upsert(docs, bases, (result) ->
-      # Bases is optional 
+      # Bases is optional
       if _.isFunction(bases)
         success = bases
-        
+
       success?(docs)
     , error)
 
@@ -316,7 +317,7 @@ class HybridCollection
       # Sort upserts if sort defined
       if @options.sortUpserts
         upserts.sort((u1, u2) => @options.sortUpserts(u1.doc, u2.doc))
-        
+
       uploadUpserts upserts, =>
         @localCol.pendingRemoves (removes) ->
           uploadRemoves(removes, success, error)

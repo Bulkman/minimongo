@@ -202,11 +202,15 @@ exports.cloneLocalDb = function(fromDb, toDb, success, error) {
   })(this));
 };
 
-exports.processFind = function(items, selector, options) {
+exports.processFind = function(items, selector, options, count) {
   var filtered;
+  if (count == null) {
+    count = {};
+  }
   filtered = _.filter(items, compileDocumentSelector(selector));
   filtered = processNearOperator(selector, filtered);
   filtered = processGeoIntersectsOperator(selector, filtered);
+  count.filtered = filtered.length;
   if (options && options.sort) {
     filtered.sort(compileSort(options.sort));
   }
@@ -3394,9 +3398,9 @@ exports.convertDistance = convertDistance;
     }
     // AMD / RequireJS
     else if (true) {
-        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = function () {
+        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = (function () {
             return async;
-        }.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__),
+        }).apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__),
 				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
     }
     // included directly via <script> tag
@@ -5379,11 +5383,14 @@ Collection = (function() {
 
   Collection.prototype._findFetch = function(selector, options, success, error) {
     return this.store.query(function(matches) {
+      var count, items;
       matches = _.filter(matches, function(m) {
         return m.state !== "removed";
       });
+      count = {};
+      items = processFind(_.pluck(matches, "doc"), selector, options, count);
       if (success != null) {
-        return success(processFind(_.pluck(matches, "doc"), selector, options));
+        return success(items, count.filtered);
       }
     }, {
       index: "col",
@@ -6933,7 +6940,7 @@ HybridCollection = (function() {
     var localSuccess, step2;
     _.defaults(options, this.options);
     step2 = (function(_this) {
-      return function(localData) {
+      return function(localData, localCount) {
         var remoteError, remoteOptions, remoteSuccess, timedOut, timer;
         remoteOptions = _.cloneDeep(options);
         if (options.cacheFind) {
@@ -6942,8 +6949,8 @@ HybridCollection = (function() {
         remoteOptions.localData = localData;
         timer = null;
         timedOut = false;
-        remoteSuccess = function(remoteData) {
-          var cacheSuccess, data;
+        remoteSuccess = function(remoteData, remoteCount) {
+          var cacheSuccess, data, itemsCount;
           if (timer) {
             clearTimeout(timer);
           }
@@ -6956,9 +6963,9 @@ HybridCollection = (function() {
           if (options.cacheFind) {
             cacheSuccess = function() {
               var localSuccess2;
-              localSuccess2 = function(localData2) {
+              localSuccess2 = function(localData2, count) {
                 if (!options.interim || !_.isEqual(localData, localData2)) {
-                  return success(localData2);
+                  return success(localData2, count);
                 }
               };
               return _this.localCol.find(selector, options).fetch(localSuccess2, error);
@@ -6966,6 +6973,7 @@ HybridCollection = (function() {
             return _this.localCol.cache(remoteData, selector, options, cacheSuccess, error);
           } else {
             data = remoteData;
+            itemsCount = remoteCount;
             return _this.localCol.pendingRemoves(function(removes) {
               var removesMap;
               if (removes.length > 0) {
@@ -6991,7 +6999,7 @@ HybridCollection = (function() {
                   data = processFind(data, selector, options);
                 }
                 if (!options.interim || !_.isEqual(localData, data)) {
-                  return success(data);
+                  return success(data, itemsCount);
                 }
               }, error);
             }, error);
@@ -7006,7 +7014,7 @@ HybridCollection = (function() {
           }
           if (!options.interim) {
             if (options.useLocalOnRemoteError) {
-              return success(localData);
+              return success(localData, localCount);
             } else {
               if (error) {
                 return error(err);
@@ -7036,11 +7044,11 @@ HybridCollection = (function() {
         return _this.remoteCol.find(selector, remoteOptions).fetch(remoteSuccess, remoteError);
       };
     })(this);
-    localSuccess = function(localData) {
+    localSuccess = function(localData, count) {
       if (options.interim) {
-        success(localData);
+        success(localData, count);
       }
-      return step2(localData);
+      return step2(localData, count);
     };
     return this.localCol.find(selector, options).fetch(localSuccess, error);
   };
@@ -7272,15 +7280,18 @@ exports.utils = __webpack_require__(0);
 /* 20 */
 /***/ (function(module, exports, __webpack_require__) {
 
-/* WEBPACK VAR INJECTION */(function(global) {var apply = Function.prototype.apply;
+/* WEBPACK VAR INJECTION */(function(global) {var scope = (typeof global !== "undefined" && global) ||
+            (typeof self !== "undefined" && self) ||
+            window;
+var apply = Function.prototype.apply;
 
 // DOM APIs, for completeness
 
 exports.setTimeout = function() {
-  return new Timeout(apply.call(setTimeout, window, arguments), clearTimeout);
+  return new Timeout(apply.call(setTimeout, scope, arguments), clearTimeout);
 };
 exports.setInterval = function() {
-  return new Timeout(apply.call(setInterval, window, arguments), clearInterval);
+  return new Timeout(apply.call(setInterval, scope, arguments), clearInterval);
 };
 exports.clearTimeout =
 exports.clearInterval = function(timeout) {
@@ -7295,7 +7306,7 @@ function Timeout(id, clearFn) {
 }
 Timeout.prototype.unref = Timeout.prototype.ref = function() {};
 Timeout.prototype.close = function() {
-  this._clearFn.call(window, this._id);
+  this._clearFn.call(scope, this._id);
 };
 
 // Does not start the time, just sets up the members needed.
@@ -7323,7 +7334,7 @@ exports._unrefActive = exports.active = function(item) {
 
 // setimmediate attaches itself to the global object
 __webpack_require__(21);
-// On some exotic environments, it's not clear which object `setimmeidate` was
+// On some exotic environments, it's not clear which object `setimmediate` was
 // able to install onto.  Search each possibility in the same order as the
 // `setimmediate` library.
 exports.setImmediate = (typeof self !== "undefined" && self.setImmediate) ||
@@ -11636,11 +11647,11 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*global windo
 
 /**
  * @license IDBWrapper - A cross-browser wrapper for IndexedDB
- * Version 1.7.1
- * Copyright (c) 2011 - 2016 Jens Arps
+ * Version 1.7.2
+ * Copyright (c) 2011 - 2017 Jens Arps
  * http://jensarps.de/
  *
- * Licensed under the MIT (X11) license
+ * Licensed under the MIT license
  */
 
 (function (name, definition, global) {
@@ -11692,7 +11703,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*global windo
      *
      * @constructor
      * @name IDBStore
-     * @version 1.7.1
+     * @version 1.7.2
      *
      * @param {Object} [kwArgs] An options object used to configure the store and
      *  set callbacks
@@ -11802,7 +11813,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*global windo
          *
          * @type {String}
          */
-        version: '1.7.1',
+        version: '1.7.2',
 
         /**
          * A reference to the IndexedDB object
@@ -13184,13 +13195,13 @@ Collection = (function() {
           }
           if (method === "quickfind") {
             body.quickfind = quickfind.encodeRequest(options.localData);
-            _this.httpClient("POST", _this.url + "/quickfind", params, body, function(encodedResponse) {
-              return success(quickfind.decodeResponse(encodedResponse, options.localData, options.sort));
+            _this.httpClient("POST", _this.url + "/quickfind", params, body, function(encodedResponse, count) {
+              return success(quickfind.decodeResponse(encodedResponse, options.localData, options.sort), count);
             }, error);
             return;
           }
-          return _this.httpClient("POST", _this.url + "/find", params, body, function(encodedResponse) {
-            return success(quickfind.decodeResponse(encodedResponse, options.localData, options.sort));
+          return _this.httpClient("POST", _this.url + "/find", params, body, function(encodedResponse, count) {
+            return success(quickfind.decodeResponse(encodedResponse, options.localData, options.sort), count);
           }, error);
         };
       })(this)
@@ -13217,9 +13228,9 @@ Collection = (function() {
     if ((typeof navigator !== "undefined" && navigator !== null) && navigator.userAgent.toLowerCase().indexOf('android 2.3') !== -1) {
       params._ = new Date().getTime();
     }
-    return this.httpClient("GET", this.url, params, null, function(results) {
+    return this.httpClient("GET", this.url, params, null, function(results, count) {
       if (results && results.length > 0) {
-        return success(results[0]);
+        return success(results[0], count);
       } else {
         return success(null);
       }
@@ -13723,9 +13734,9 @@ module.exports = function(method, url, params, data, success, error) {
   } else {
     root.sha1 = exports;
     if (AMD) {
-      !(__WEBPACK_AMD_DEFINE_RESULT__ = function () {
+      !(__WEBPACK_AMD_DEFINE_RESULT__ = (function () {
         return exports;
-      }.call(exports, __webpack_require__, exports, module),
+      }).call(exports, __webpack_require__, exports, module),
 				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
     }
   }

@@ -182,7 +182,7 @@ var VALUE_OPERATORS = {
       return _anyIfArrayPlus(value, function (x) {
         if (_.isString(x) && index !== null)
           return index[x] != undefined;
-        
+
         return _.any(operand, function (operandElt) {
           return LocalCollection._f._equal(operandElt, x);
         });
@@ -380,8 +380,6 @@ LocalCollection._f = {
       return 9;
     if (EJSON.isBinary(v))
       return 5;
-    if (v instanceof Meteor.Collection.ObjectID)
-      return 7;
     return 3; // object
 
     // XXX support some/all of these:
@@ -447,10 +445,7 @@ LocalCollection._f = {
       // Timestamp
       throw Error("Missing type coercion logic in _cmp");
     if (ta === 7) { // ObjectID
-      // Convert to string.
-      ta = tb = 2;
-      a = a.toHexString();
-      b = b.toHexString();
+
     }
     if (ta === 9) { // Date
       // Convert to millis.

@@ -66,9 +66,9 @@ class Collection
         params.selector = JSON.stringify(selector || {})
         if options.sort
           params.sort = JSON.stringify(options.sort)
-        if options.limit
+        if options.limit?
           params.limit = options.limit
-        if options.skip
+        if options.skip?
           params.skip = options.skip
         if options.fields
           params.fields = JSON.stringify(options.fields)

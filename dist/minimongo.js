@@ -3393,9 +3393,9 @@ exports.convertDistance = convertDistance;
     }
     // AMD / RequireJS
     else if (true) {
-        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = (function () {
+        !(__WEBPACK_AMD_DEFINE_ARRAY__ = [], __WEBPACK_AMD_DEFINE_RESULT__ = function () {
             return async;
-        }).apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__),
+        }.apply(exports, __WEBPACK_AMD_DEFINE_ARRAY__),
 				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
     }
     // included directly via <script> tag
@@ -3405,37 +3405,10 @@ exports.convertDistance = convertDistance;
 
 }());
 
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(6), __webpack_require__(20).setImmediate, __webpack_require__(8)))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(7), __webpack_require__(20).setImmediate, __webpack_require__(8)))
 
 /***/ }),
 /* 6 */
-/***/ (function(module, exports) {
-
-var g;
-
-// This works in non-strict mode
-g = (function() {
-	return this;
-})();
-
-try {
-	// This works if eval is allowed (see CSP)
-	g = g || Function("return this")() || (1,eval)("this");
-} catch(e) {
-	// This works if the window reference is available
-	if(typeof window === "object")
-		g = window;
-}
-
-// g can still be undefined, but nothing to do about it...
-// We return undefined, instead of nothing here, so it's
-// easier to handle this case. if(!global) { ...}
-
-module.exports = g;
-
-
-/***/ }),
-/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -4574,6 +4547,33 @@ exports.findPoint = findPoint;
 
 
 /***/ }),
+/* 7 */
+/***/ (function(module, exports) {
+
+var g;
+
+// This works in non-strict mode
+g = (function() {
+	return this;
+})();
+
+try {
+	// This works if eval is allowed (see CSP)
+	g = g || Function("return this")() || (1,eval)("this");
+} catch(e) {
+	// This works if the window reference is available
+	if(typeof window === "object")
+		g = window;
+}
+
+// g can still be undefined, but nothing to do about it...
+// We return undefined, instead of nothing here, so it's
+// easier to handle this case. if(!global) { ...}
+
+module.exports = g;
+
+
+/***/ }),
 /* 8 */
 /***/ (function(module, exports) {
 
@@ -5205,7 +5205,7 @@ Collection = (function() {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-var meta_1 = __webpack_require__(7);
+var meta_1 = __webpack_require__(6);
 /**
  * Takes a set of features, calculates the bbox of all input features, and returns a bounding box.
  *
@@ -7275,18 +7275,15 @@ exports.utils = __webpack_require__(0);
 /* 20 */
 /***/ (function(module, exports, __webpack_require__) {
 
-/* WEBPACK VAR INJECTION */(function(global) {var scope = (typeof global !== "undefined" && global) ||
-            (typeof self !== "undefined" && self) ||
-            window;
 var apply = Function.prototype.apply;
 
 // DOM APIs, for completeness
 
 exports.setTimeout = function() {
-  return new Timeout(apply.call(setTimeout, scope, arguments), clearTimeout);
+  return new Timeout(apply.call(setTimeout, window, arguments), clearTimeout);
 };
 exports.setInterval = function() {
-  return new Timeout(apply.call(setInterval, scope, arguments), clearInterval);
+  return new Timeout(apply.call(setInterval, window, arguments), clearInterval);
 };
 exports.clearTimeout =
 exports.clearInterval = function(timeout) {
@@ -7301,7 +7298,7 @@ function Timeout(id, clearFn) {
 }
 Timeout.prototype.unref = Timeout.prototype.ref = function() {};
 Timeout.prototype.close = function() {
-  this._clearFn.call(scope, this._id);
+  this._clearFn.call(window, this._id);
 };
 
 // Does not start the time, just sets up the members needed.
@@ -7329,17 +7326,9 @@ exports._unrefActive = exports.active = function(item) {
 
 // setimmediate attaches itself to the global object
 __webpack_require__(21);
-// On some exotic environments, it's not clear which object `setimmediate` was
-// able to install onto.  Search each possibility in the same order as the
-// `setimmediate` library.
-exports.setImmediate = (typeof self !== "undefined" && self.setImmediate) ||
-                       (typeof global !== "undefined" && global.setImmediate) ||
-                       (this && this.setImmediate);
-exports.clearImmediate = (typeof self !== "undefined" && self.clearImmediate) ||
-                         (typeof global !== "undefined" && global.clearImmediate) ||
-                         (this && this.clearImmediate);
+exports.setImmediate = setImmediate;
+exports.clearImmediate = clearImmediate;
 
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(6)))
 
 /***/ }),
 /* 21 */
@@ -7532,7 +7521,7 @@ exports.clearImmediate = (typeof self !== "undefined" && self.clearImmediate) ||
     attachTo.clearImmediate = clearImmediate;
 }(typeof self === "undefined" ? typeof global === "undefined" ? this : global : self));
 
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(6), __webpack_require__(8)))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(7), __webpack_require__(8)))
 
 /***/ }),
 /* 22 */
@@ -10172,7 +10161,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var helpers_1 = __webpack_require__(4);
 var invariant_1 = __webpack_require__(3);
 var line_segment_1 = __importDefault(__webpack_require__(28));
-var meta_1 = __webpack_require__(7);
+var meta_1 = __webpack_require__(6);
 var geojson_rbush_1 = __importDefault(__webpack_require__(29));
 /**
  * Takes any LineString or Polygon GeoJSON and returns the intersecting point(s).
@@ -10287,7 +10276,7 @@ exports.default = lineIntersect;
 Object.defineProperty(exports, "__esModule", { value: true });
 var helpers_1 = __webpack_require__(4);
 var invariant_1 = __webpack_require__(3);
-var meta_1 = __webpack_require__(7);
+var meta_1 = __webpack_require__(6);
 /**
  * Creates a {@link FeatureCollection} of 2-vertex {@link LineString} segments from a
  * {@link LineString|(Multi)LineString} or {@link Polygon|(Multi)Polygon}.
@@ -10386,7 +10375,7 @@ exports.default = lineSegment;
 
 var rbush = __webpack_require__(30);
 var helpers = __webpack_require__(4);
-var meta = __webpack_require__(7);
+var meta = __webpack_require__(6);
 var turfBBox = __webpack_require__(11).default;
 var featureEach = meta.featureEach;
 var coordEach = meta.coordEach;
@@ -11642,11 +11631,11 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*global windo
 
 /**
  * @license IDBWrapper - A cross-browser wrapper for IndexedDB
- * Version 1.7.2
- * Copyright (c) 2011 - 2017 Jens Arps
+ * Version 1.7.1
+ * Copyright (c) 2011 - 2016 Jens Arps
  * http://jensarps.de/
  *
- * Licensed under the MIT license
+ * Licensed under the MIT (X11) license
  */
 
 (function (name, definition, global) {
@@ -11698,7 +11687,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*global windo
      *
      * @constructor
      * @name IDBStore
-     * @version 1.7.2
+     * @version 1.7.1
      *
      * @param {Object} [kwArgs] An options object used to configure the store and
      *  set callbacks
@@ -11808,7 +11797,7 @@ var __WEBPACK_AMD_DEFINE_FACTORY__, __WEBPACK_AMD_DEFINE_RESULT__;/*global windo
          *
          * @type {String}
          */
-        version: '1.7.2',
+        version: '1.7.1',
 
         /**
          * A reference to the IndexedDB object
@@ -13151,10 +13140,10 @@ Collection = (function() {
             if (options.sort) {
               params.sort = JSON.stringify(options.sort);
             }
-            if (options.limit) {
+            if (options.limit != null) {
               params.limit = options.limit;
             }
-            if (options.skip) {
+            if (options.skip != null) {
               params.skip = options.skip;
             }
             if (options.fields) {
@@ -13729,15 +13718,15 @@ module.exports = function(method, url, params, data, success, error) {
   } else {
     root.sha1 = exports;
     if (AMD) {
-      !(__WEBPACK_AMD_DEFINE_RESULT__ = (function () {
+      !(__WEBPACK_AMD_DEFINE_RESULT__ = function () {
         return exports;
-      }).call(exports, __webpack_require__, exports, module),
+      }.call(exports, __webpack_require__, exports, module),
 				__WEBPACK_AMD_DEFINE_RESULT__ !== undefined && (module.exports = __WEBPACK_AMD_DEFINE_RESULT__));
     }
   }
 })();
 
-/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(8), __webpack_require__(6)))
+/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(8), __webpack_require__(7)))
 
 /***/ }),
 /* 39 */

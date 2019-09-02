@@ -158,7 +158,7 @@ class HybridCollection
               return not _.has(removesMap, doc._id)
 
           # Add upserts
-          @localCol.pendingUpserts (upserts) ->
+          @localCol.pendingUpserts (upserts) =>
             itemsCount = remoteCount
 
             if upserts.length > 0

@@ -157,7 +157,14 @@ class HybridCollection
               if not options.interim or not _.isEqual(localData, localData2)
                 # Send again
                 success(localData2, remoteCount + count.upserted)
-            @localCol.find(selector, options).fetch(localSuccess2, error)
+
+            # take last portion
+            localCachedAndUpsertedCount = localCount.cached + localCount.upserted
+            if options and options.skip != undefined and options.skip? and options.skip >= localCachedAndUpsertedCount
+              options.skip = localCachedAndUpsertedCount - options.limit
+              @localCol.find(selector, options).fetch(localSuccess2, error)
+            else
+              @localCol.find(selector, options).fetch(localSuccess2, error)
           @localCol.cache(remoteData, selector, options, cacheSuccess, error)
         else
           # Remove local remotes

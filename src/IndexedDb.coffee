@@ -76,10 +76,17 @@ class Collection
     # Get all docs from collection
     @store.query (matches) ->
       # Filter removed docs
-      matches = _.filter matches, (m) -> m.state != "removed"
-      count = {}
-      items = processFind(_.pluck(matches, "doc"), selector, options, count)
-      if success? then success(items, count.filtered)
+      cached = _.filter matches, (m) -> m.state != "cached"
+      upserted = _.filter matches, (m) -> m.state != "upserted"
+      cachedItemsCount = {}
+      upsertedItemsCount = {}
+      cachedItems = processFind(_.pluck(cached, "doc"), selector, options, cachedItemsCount)
+      upsertedItems = processFind(_.pluck(upserted, "doc"), selector, options, upsertedItemsCount)
+      count = {
+        cached: cachedItems.filtered,
+        upserted: upsertedItems.filtered,
+      }
+      if success? then success(cachedItems.concat(upsertedItems), count)
     , { index: "col", keyRange: @store.makeKeyRange(only: @name), onError: error }
 
   upsert: (docs, bases, success, error) ->

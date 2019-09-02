@@ -6954,7 +6954,7 @@ HybridCollection = (function() {
         timer = null;
         timedOut = false;
         remoteSuccess = function(remoteData, remoteCount) {
-          var cacheSuccess, data, itemsCount;
+          var data;
           if (timer) {
             clearTimeout(timer);
           }
@@ -6964,56 +6964,48 @@ HybridCollection = (function() {
             }
             return;
           }
-          if (options.cacheFind) {
-            cacheSuccess = function() {
-              var localCachedAndUpsertedCount, localSuccess2;
-              localSuccess2 = function(localData2, count) {
-                if (!options.interim || !_.isEqual(localData, localData2)) {
-                  return success(localData2, remoteCount + count.upserted);
-                }
-              };
-              localCachedAndUpsertedCount = localCount.cached + localCount.upserted;
-              if (options && options.skip !== void 0 && (options.skip != null) && options.skip >= localCachedAndUpsertedCount) {
-                options.skip = localCachedAndUpsertedCount - options.limit;
-                return _this.localCol.find(selector, options).fetch(localSuccess2, error);
-              } else {
-                return _this.localCol.find(selector, options).fetch(localSuccess2, error);
-              }
-            };
-            return _this.localCol.cache(remoteData, selector, options, cacheSuccess, error);
-          } else {
-            data = remoteData;
-            itemsCount = remoteCount;
-            return _this.localCol.pendingRemoves(function(removes) {
-              var removesMap;
-              if (removes.length > 0) {
-                removesMap = _.object(_.map(removes, function(id) {
-                  return [id, id];
+          data = remoteData;
+          return _this.localCol.pendingRemoves(function(removes) {
+            var removesMap;
+            if (removes.length > 0) {
+              removesMap = _.object(_.map(removes, function(id) {
+                return [id, id];
+              }));
+              data = _.filter(remoteData, function(doc) {
+                return !_.has(removesMap, doc._id);
+              });
+            }
+            return _this.localCol.pendingUpserts(function(upserts) {
+              var cacheSuccess, itemsCount, tmpCount, upsertsMap;
+              itemsCount = remoteCount;
+              if (upserts.length > 0) {
+                upsertsMap = _.object(_.map(upserts, function(u) {
+                  return u.doc._id;
+                }), _.map(upserts, function(u) {
+                  return u.doc._id;
                 }));
-                data = _.filter(remoteData, function(doc) {
-                  return !_.has(removesMap, doc._id);
+                data = _.filter(data, function(doc) {
+                  return !_.has(upsertsMap, doc._id);
                 });
+                data = data.concat(_.pluck(upserts, "doc"));
+                tmpCount = {};
+                data = processFind(data, selector, options, tmpCount);
+                itemsCount = tmpCount.filtered;
               }
-              return _this.localCol.pendingUpserts(function(upserts) {
-                var upsertsMap;
-                if (upserts.length > 0) {
-                  upsertsMap = _.object(_.map(upserts, function(u) {
-                    return u.doc._id;
-                  }), _.map(upserts, function(u) {
-                    return u.doc._id;
-                  }));
-                  data = _.filter(data, function(doc) {
-                    return !_.has(upsertsMap, doc._id);
-                  });
-                  data = data.concat(_.pluck(upserts, "doc"));
-                  data = processFind(data, selector, options);
+              if (!options.interim || !_.isEqual(localData, data)) {
+                if (options.cacheFind) {
+                  cacheSuccess = (function(_this) {
+                    return function() {
+                      return success(data, itemsCount);
+                    };
+                  })(this);
+                  return this.localCol.cache(remoteData, selector, options, cacheSuccess, error);
+                } else {
+                  return success(data, itemsCount);
                 }
-                if (!options.interim || !_.isEqual(localData, data)) {
-                  return success(data, itemsCount + upserts.length);
-                }
-              }, error);
+              }
             }, error);
-          }
+          }, error);
         };
         remoteError = function(err) {
           if (timer) {

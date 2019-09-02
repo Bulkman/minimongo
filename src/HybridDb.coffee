@@ -148,55 +148,45 @@ class HybridCollection
             @localCol.cache(remoteData, selector, options, (->), error)
           return
 
-        if options.cacheFind
-          # Cache locally
-          cacheSuccess = =>
-            # Get local data again
-            localSuccess2 = (localData2, count) ->
-              # Check if different or not interim
-              if not options.interim or not _.isEqual(localData, localData2)
-                # Send again
-                success(localData2, remoteCount + count.upserted)
+        # Remove local remotes
+        data = remoteData
 
-            # take last portion
-            localCachedAndUpsertedCount = localCount.cached + localCount.upserted
-            if options and options.skip != undefined and options.skip? and options.skip >= localCachedAndUpsertedCount
-              options.skip = localCachedAndUpsertedCount - options.limit
-              @localCol.find(selector, options).fetch(localSuccess2, error)
-            else
-              @localCol.find(selector, options).fetch(localSuccess2, error)
-          @localCol.cache(remoteData, selector, options, cacheSuccess, error)
-        else
-          # Remove local remotes
-          data = remoteData
-          itemsCount = remoteCount
+        @localCol.pendingRemoves (removes) =>
+          if removes.length > 0
+            removesMap = _.object(_.map(removes, (id) -> [id, id]))
+            data = _.filter remoteData, (doc) ->
+              return not _.has(removesMap, doc._id)
 
-          @localCol.pendingRemoves (removes) =>
-            if removes.length > 0
-              removesMap = _.object(_.map(removes, (id) -> [id, id]))
-              data = _.filter remoteData, (doc) ->
-                return not _.has(removesMap, doc._id)
+          # Add upserts
+          @localCol.pendingUpserts (upserts) ->
+            itemsCount = remoteCount
 
-            # Add upserts
-            @localCol.pendingUpserts (upserts) ->
-              if upserts.length > 0
-                # Remove upserts from data
-                upsertsMap = _.object(_.map(upserts, (u) -> u.doc._id), _.map(upserts, (u) -> u.doc._id))
-                data = _.filter data, (doc) ->
-                  return not _.has(upsertsMap, doc._id)
+            if upserts.length > 0
+              # Remove upserts from data
+              upsertsMap = _.object(_.map(upserts, (u) -> u.doc._id), _.map(upserts, (u) -> u.doc._id))
+              data = _.filter data, (doc) ->
+                return not _.has(upsertsMap, doc._id)
 
-                # Add upserts
-                data = data.concat(_.pluck(upserts, "doc"))
+              # Add upserts
+              data = data.concat(_.pluck(upserts, "doc"))
 
-                # Refilter/sort/limit
-                data = processFind(data, selector, options)
+              # Refilter/sort/limit
+              tmpCount = {}
+              data = processFind(data, selector, options, tmpCount)
+              itemsCount = tmpCount.filtered
 
-              # Check if different or not interim
-              if not options.interim or not _.isEqual(localData, data)
-                # Send again
-                success(data, itemsCount + upserts.length)
-            , error
+            # Check if different or not interim
+            if not options.interim or not _.isEqual(localData, data)
+              # Send again
+              if options.cacheFind
+                # Cache locally
+                cacheSuccess = =>
+                  success(data, itemsCount)
+                @localCol.cache(remoteData, selector, options, cacheSuccess, error)
+              else
+                success(data, itemsCount)
           , error
+        , error
 
       remoteError = (err) =>
         # Cancel timer

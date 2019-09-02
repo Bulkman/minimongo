@@ -156,7 +156,7 @@ class HybridCollection
               # Check if different or not interim
               if not options.interim or not _.isEqual(localData, localData2)
                 # Send again
-                success(localData2, count)
+                success(localData2, remoteCount + count.upserted)
             @localCol.find(selector, options).fetch(localSuccess2, error)
           @localCol.cache(remoteData, selector, options, cacheSuccess, error)
         else
@@ -187,7 +187,7 @@ class HybridCollection
               # Check if different or not interim
               if not options.interim or not _.isEqual(localData, data)
                 # Send again
-                success(data, itemsCount)
+                success(data, itemsCount + upserts.length)
             , error
           , error
 
@@ -202,7 +202,7 @@ class HybridCollection
         # If no interim, do local find
         if not options.interim
           if options.useLocalOnRemoteError
-            success(localData, localCount)
+            success(localData, localCount.cached + localCount.upserted)
           else
             if error then error(err)
         else
@@ -218,7 +218,8 @@ class HybridCollection
           # If no interim, do local find
           if not options.interim
             if options.useLocalOnRemoteError
-              @localCol.find(selector, options).fetch(success, error)
+              localSuccess = (localData, count) -> success(localData, count.cached + count.upserted)
+              @localCol.find(selector, options).fetch(localSuccess, error)
             else
               if error then error(new Error("Remote timed out"))
           else
@@ -231,7 +232,7 @@ class HybridCollection
     localSuccess = (localData, count) ->
       # If interim, return data immediately
       if options.interim
-        success(localData, count)
+        success(localData, count.cached + count.upserted)
       step2(localData, count)
 
     # Always get local data first

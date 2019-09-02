@@ -6966,13 +6966,19 @@ HybridCollection = (function() {
           }
           if (options.cacheFind) {
             cacheSuccess = function() {
-              var localSuccess2;
+              var localCachedAndUpsertedCount, localSuccess2;
               localSuccess2 = function(localData2, count) {
                 if (!options.interim || !_.isEqual(localData, localData2)) {
                   return success(localData2, remoteCount + count.upserted);
                 }
               };
-              return _this.localCol.find(selector, options).fetch(localSuccess2, error);
+              localCachedAndUpsertedCount = localCount.cached + localCount.upserted;
+              if (options && options.skip !== void 0 && (options.skip != null) && options.skip >= localCachedAndUpsertedCount) {
+                options.skip = localCachedAndUpsertedCount - options.limit;
+                return _this.localCol.find(selector, options).fetch(localSuccess2, error);
+              } else {
+                return _this.localCol.find(selector, options).fetch(localSuccess2, error);
+              }
             };
             return _this.localCol.cache(remoteData, selector, options, cacheSuccess, error);
           } else {

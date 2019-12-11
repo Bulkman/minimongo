@@ -227,6 +227,11 @@ class Collection
       if success? then success(_.pluck(_.pluck(matches, "doc"), "_id"))
     , { index: "col-state", keyRange: @store.makeKeyRange(only: [@name, "removed"]), onError: error }
 
+  pendingDocRemoves: (success, error) ->
+    @store.query (matches) ->
+      if success? then success(_.pluck(matches, "doc"))
+    , { index: "col-state", keyRange: @store.makeKeyRange(only: [@name, "removed"]), onError: error }
+
   resolveUpserts: (upserts, success, error) ->
     # Get items
     keys = _.map upserts, (upsert) => [@name, upsert.doc._id]
